@@ -7,7 +7,7 @@
 
 #include <avr/io.h>
 #include "PWM.h"
-
+#include "timer.h"
 
 int main(void)
 {
