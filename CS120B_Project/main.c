@@ -9,6 +9,7 @@
 #include "PWM.h"
 #include "timer.h"
 #include <util/delay.h>
+#include <avr/interrupt.h>
 
 enum States{one,two}state;
 int pulse = 97;
@@ -23,34 +24,32 @@ void SM_tick(){
 	}
 	switch(state){ // state actions
 		case one:
-			for(pulse; pulse <=425; pulse += 1){
-				//set_PWM(pulse);
-				OCR3A = pulse;
-				_delay_loop_2(100);
-			}
+			set_PWM(1000);
 			break;
 		case two:
-			for(pulse;pulse >= 97; pulse -=1){
-				//set_PWM(pulse);
-				OCR3A = pulse;
-				_delay_loop_2(100);
-			}
+			set_PWM(1500);
+			//OCR1A = 1500;
 			break;
 	}
 }
 
 int main(void)
 {
-	//DDRA = 0x00; PORTA = 0xFF; // A input initialized to 0xFF
-	DDRB = 0xFF; PORTB = 0x00; // B output initialized to 0x00
+	DDRD |= 0xFF;
+	//TCCR1A |= 1<<WGM11 | 1<<COM1A1 | 1<<COM1A0;
+	//TCCR1B |= 1<<WGM13 | 1<<WGM12 | 1<<CS10;
+	//ICR1 = 19999;
 
-	TimerSet(1);
-	TimerOn();
+	//OCR1A = ICR1 - 2000; //18000
 	PWM_on();
+	TimerOn();
+	TimerSet(100);
 	state = one;
-	while(1){
+
+	while (1)
+	{
 		SM_tick();
 		while(!TimerFlag){}
-		TimerFlag = 0;
+		TimerFlag=0;
 	}
 }
