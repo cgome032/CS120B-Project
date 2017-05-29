@@ -6,6 +6,7 @@
  */ 
 
 #include <avr/io.h>
+#include "PWM.h"
 
 
 int main(void)
