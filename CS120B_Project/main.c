@@ -14,6 +14,12 @@
 #include "keypad.h"
 
 
+/**************************************************
+State Machine to control Servo Motor
+
+
+***************************************************/
+
 enum SM_Servo_States{one,two}servo_state;
 int pulse = 97;
 void SM_Servo_tick(){
@@ -34,7 +40,12 @@ void SM_Servo_tick(){
 			break;
 	}
 }
+/**************************************************
+State Machine to control locking mechanism using 
+keypad
 
+
+***************************************************/
 
 enum SM_Lock_States{lock_Start,lock_Locked,lock_lockRelease,lock_Unlocked,lock_unlockRelease}lock_state;
 char passCode[6] = {'#','1','2','3','4','#'};
@@ -106,14 +117,89 @@ void SM_Lock_Tick(){
 		case lock_Start: 
 			break;
 		case lock_Locked:
-			speaker_set_PWM(0);
 			break;
 		case lock_lockRelease:
 			break;
 		case lock_Unlocked:
-			speaker_set_PWM(329.63);
 			break;
 		case lock_unlockRelease:
+			break;
+	}
+}
+
+
+/**************************************************
+State Machine to control sensor state
+
+
+***************************************************/
+
+enum SM_Sensor_States{sensorOff,sensorOn}sensor_state;
+
+unsigned char senseCheck = 0x00;
+
+void SM_Sensor_Tick(){
+	senseCheck = PINB & 0x01;
+	switch(sensor_state){		// Transitions
+		case sensorOff:
+			if(senseCheck){
+				sensor_state = sensorOn;
+			}
+			else
+				sensor_state = sensorOff;
+			break;
+		case sensorOn:
+			if(senseCheck ){
+				sensor_state = sensorOn;
+			}
+			else
+				sensor_state = sensorOff;
+			break;
+	}
+	switch(sensor_state){		// State actions
+		case sensorOff:
+			PORTA = 0x00;
+			break;
+		case sensorOn:
+			PORTA = 0xFF;
+			_delay_ms(2);
+			PORTA = 0x00;
+			break;
+	}
+}
+
+/**************************************************
+State Machine to control alarm noise
+
+
+***************************************************/
+
+enum SM_Alarm_States{alarmOn,alarmOff}alarm_state;
+
+void SM_Alarm_Tick(){
+	switch(alarm_state){		//Transitions
+		case alarmOff:
+			if(lock_state == lock_Locked || lock_state == lock_lockRelease && sensor_state == sensorOn){
+				alarm_state = alarmOn;
+			}
+			else
+				alarm_state = alarmOff;
+			break;
+		case alarmOn:
+			if(lock_state == lock_Locked || lock_state == lock_lockRelease && sensor_state == sensorOn){
+				alarm_state = alarmOn;
+			}
+			else
+				alarm_state = alarmOff;
+			break;
+	}
+
+	switch(alarm_state){		//State actions
+		case alarmOff:
+			speaker_set_PWM(0);
+			break;
+		case alarmOn:
+			speaker_set_PWM(3000);
 			break;
 	}
 }
@@ -122,22 +208,25 @@ void SM_Lock_Tick(){
 
 int main(void)
 {
-
-	DDRB = 0xFF; PORTB = 0xFF; // Set B to output
+	DDRA = 0xFF; PORTA = 0x00;
+	DDRB = 0x08; PORTB = 0xF7; // Set B3 to output, everything else to input
 	DDRC = 0xF0; PORTC = 0x0F; // Set PC7 to input keypad
 	DDRD |= 0xFF;
 
 	servo_PWM_on();
 	speaker_PWM_on();
 	TimerOn();
-	TimerSet(1);
+	TimerSet(10);
+
 	servo_state = one;
 	lock_state = lock_Start;
-
+	sensor_state = sensorOff;
+	alarm_state = alarmOff;
 	while (1)
 	{
-		//SM_Servo_tick();
 		SM_Lock_Tick();
+		SM_Sensor_Tick();
+		SM_Alarm_Tick();
 		while(!TimerFlag){}
 		TimerFlag=0;
 	}
