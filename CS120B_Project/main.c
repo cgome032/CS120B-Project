@@ -15,39 +15,13 @@
 
 
 /**************************************************
-State Machine to control Servo Motor
-
-
-***************************************************/
-
-enum SM_Servo_States{one,two}servo_state;
-int pulse = 97;
-void SM_Servo_tick(){
-	switch(servo_state){ // transitions
-		case one:
-			servo_state = two;
-			break;
-		case two:
-			servo_state = one;
-			break;
-	}
-	switch(servo_state){ // state actions
-		case one:
-			servo_set_PWM(1000);
-			break;
-		case two:
-			servo_set_PWM(1500);
-			break;
-	}
-}
-/**************************************************
 State Machine to control locking mechanism using 
 keypad
 
 
 ***************************************************/
 
-enum SM_Lock_States{lock_Start,lock_Locked,lock_lockRelease,lock_Unlocked,lock_unlockRelease}lock_state;
+enum SM_Lock_States{lock_Start,lock_Locked,lock_lockRelease,lock_Unlocked,lock_unlockRelease,lock_Locking}lock_state;
 char passCode[6] = {'#','1','2','3','4','#'};
 unsigned char lockCounter = 0;
 void SM_Lock_Tick(){
@@ -55,8 +29,8 @@ void SM_Lock_Tick(){
 	switch(lock_state){		// Transitions
 		case lock_Start:
 			lockCounter = 0;
-			lock_state = lock_Locked;
-			servo_set_PWM(1500);
+			lock_state = lock_Unlocked;
+			servo_set_PWM(1000);
 			break;
 		case lock_Locked:
 			if(x == '\0'){
@@ -107,11 +81,21 @@ void SM_Lock_Tick(){
 				lock_state = lock_Unlocked;
 			}
 			else if(x == '\0' && lockCounter > 5){
-				servo_set_PWM(1500);
-				lock_state = lock_Locked;
+				lock_state = lock_Locking;
 				lockCounter = 0;
 			}
 			break;
+		case lock_Locking:
+			if(lockCounter <= 10){
+				lock_state = lock_Locking;
+				lockCounter++;
+			}
+			else{
+				lock_state = lock_Locked;
+				lockCounter = 0;
+				servo_set_PWM(1500);
+			}
+			break;			
 	}
 	switch(lock_state){		// State actions
 		case lock_Start: 
@@ -123,6 +107,12 @@ void SM_Lock_Tick(){
 		case lock_Unlocked:
 			break;
 		case lock_unlockRelease:
+			break;
+		case lock_Locking:
+			speaker_set_PWM(1000);
+			_delay_ms(130);
+			speaker_set_PWM(0);
+			_delay_ms(130);
 			break;
 	}
 }
@@ -158,12 +148,8 @@ void SM_Sensor_Tick(){
 	}
 	switch(sensor_state){		// State actions
 		case sensorOff:
-			PORTA = 0x00;
 			break;
 		case sensorOn:
-			PORTA = 0xFF;
-			_delay_ms(2);
-			PORTA = 0x00;
 			break;
 	}
 }
@@ -174,32 +160,61 @@ State Machine to control alarm noise
 
 ***************************************************/
 
-enum SM_Alarm_States{alarmOn,alarmOff}alarm_state;
+enum SM_Alarm_States{alarmOn,alarmLED,alarmOff}alarm_state;
+unsigned char alarmCounter = 0x00;
+
 
 void SM_Alarm_Tick(){
 	switch(alarm_state){		//Transitions
 		case alarmOff:
-			if(lock_state == lock_Locked || lock_state == lock_lockRelease && sensor_state == sensorOn){
+			if((lock_state == lock_Locked || lock_state == lock_lockRelease) && sensor_state == sensorOn){
 				alarm_state = alarmOn;
 			}
 			else
 				alarm_state = alarmOff;
 			break;
 		case alarmOn:
-			if(lock_state == lock_Locked || lock_state == lock_lockRelease && sensor_state == sensorOn){
-				alarm_state = alarmOn;
-			}
-			else
+			if(lock_state == lock_Unlocked){
 				alarm_state = alarmOff;
+			}
+			else if(alarmCounter <= 10){
+				alarm_state = alarmOn;
+				alarmCounter++;
+			}
+			else if(alarmCounter > 10){
+				alarm_state = alarmLED;
+				alarmCounter = 0;
+			}
 			break;
+		case alarmLED:
+			if(lock_state == lock_Unlocked){
+				alarm_state = alarmOff;
+			}
+			else if(alarmCounter <= 10){
+				alarm_state = alarmLED;
+				alarmCounter++;
+			}
+			else if(alarmCounter > 10){
+				alarm_state = alarmOn;
+				alarmCounter = 0;
+			}
+			break;
+			
+			
 	}
 
 	switch(alarm_state){		//State actions
 		case alarmOff:
 			speaker_set_PWM(0);
+			PORTA = 0x00;
 			break;
 		case alarmOn:
 			speaker_set_PWM(3000);
+			PORTA = 0xFF;
+			break;
+		case alarmLED:
+			speaker_set_PWM(3000);
+			PORTA = 0x00;
 			break;
 	}
 }
@@ -216,9 +231,8 @@ int main(void)
 	servo_PWM_on();
 	speaker_PWM_on();
 	TimerOn();
-	TimerSet(10);
+	TimerSet(1);
 
-	servo_state = one;
 	lock_state = lock_Start;
 	sensor_state = sensorOff;
 	alarm_state = alarmOff;
