@@ -2,7 +2,8 @@
 #define SPEAKER_PWM_H_
 
 #include <avr/io.h>
-// NOTE*** THIS NEW CODE TARGETS PB6 NOT PB3
+
+// This code is for PB3
 
 void speaker_set_PWM(double frequency) {
   static double current_frequency; // Keeps track of the currently set frequency

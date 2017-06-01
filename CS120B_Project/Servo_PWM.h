@@ -12,6 +12,9 @@ void servo_set_PWM(int cycle) {
 void servo_PWM_on() {
 	TCCR1A |= 1<<WGM11 | 1<<COM1A1 | 1<<COM1A0;
 	TCCR1B |= 1<<WGM13 | 1<<WGM12 | 1<<CS10;
+	servo_set_PWM(1000);
+
+
 }
 
 void servo_PWM_off() {
