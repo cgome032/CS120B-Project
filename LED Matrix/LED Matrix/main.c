@@ -67,21 +67,74 @@ unsigned char tmpA = 0x00;
 unsigned char tmpB = 0x00;
 
 // Variables to keep track of vertical and horizontal locations
-unsigned char locY = 10;
-unsigned char locX = 10;
+unsigned char arrayCount = 0x00;
 
 
 
 // Display two LED's on
-unsigned char countInc = 0x00;
-unsigned char timeCount = 100;
+unsigned int countInc = 0;
+unsigned int timeCount = 1000;
+
+unsigned char arrayFive[17][2] = {
+	{0x20,0x01},
+	{0x10,0x01},
+	{0x08,0x01},
+	{0x04,0x01},
+	{0x04,0x02},
+	{0x04,0x04},
+	{0x04,0x08},
+	{0x04,0x10},
+	{0x08,0x10},
+	{0x10,0x10},
+	{0x20,0x10},
+	{0x20,0x20},
+	{0x20,0x40},
+	{0x20,0x80},
+	{0x10,0x80},
+	{0x08,0x80},
+	{0x04,0x80}
+};
+
+unsigned char arrayFour[8][2] = {
+	{0x04,0x01},
+	{0x04,0x02},
+	{0x04,0x04},
+	{0x04,0x08},
+	{0x04,0x10},
+	{0x08,0x10},
+	{0x10,0x10},
+	{0x20,0xFF}
+};
+
+unsigned char arrayThree[10][2] = {
+	{0x04,0x01},
+	{0x08,0x01},
+	{0x10,0x01},
+	{0x04,0x08},
+	{0x08,0x08},
+	{0x10,0x08},
+	{0x04,0x80},
+	{0x08,0x80},
+	{0x10,0x80},
+	{0x20,0xFF}
+};
 void disp_countDown_Tick(){
 	switch(dispState){
-		case five:	
+		case five:
+			if(countInc == timeCount){
+				dispState = four;
+				arrayCount = 0;
+				countInc = 0;
+			}
+			else{
+				dispState = five;
+				countInc++;
+			}	
 			break;
 		case four:
 			if(countInc == timeCount){
 				dispState = three;
+				arrayCount = 0;
 				countInc = 0;
 			}
 			else{
@@ -92,7 +145,8 @@ void disp_countDown_Tick(){
 			break;
 		case three:
 			if(countInc == timeCount){
-				dispState = two;
+				dispState = five;
+				arrayCount = 0;
 				countInc = 0;
 			}
 			else{
@@ -127,47 +181,28 @@ void disp_countDown_Tick(){
 	}
 	switch(dispState){
 		case five:
-			if(locX == 10 && locY ==10){
-				tmpA = 0x20;
-				tmpB = 0xFE;
-				locX = 0;
-				locY = 0;
+			tmpA = arrayFive[arrayCount][0];
+			tmpB = ~arrayFive[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 17){
+				arrayCount = 0;
 			}
-			else if(locX <3 && locY ==0){
-				tmpA = tmpA >> 1;
-				tmpB = tmpB;
-				locX++;
-			}
-			else if(locX == 3 && locY < 4){
-				tmpA = tmpA;
-				tmpB = ~(~tmpB << 1);
-				locY++;
-			}
-			else if(locX >0 && locY == 4){
-				tmpA = tmpA << 1;
-				tmpB = tmpB;
-				locX--;
-			}
-			else if(locX == 0 && locY >1){
-				tmpA = tmpA;
-				tmpB = ~(~tmpB << 1);
-				locY--;
-			}
-			else if(locX <= 2 && locY ==1){
-				tmpA = tmpA >> 1;
-				tmpB = tmpB;
-				locX++;
-				if(locX == 3){
-					locX = 10;
-					locY = 10;
-				}
-			}
-
-			
 			break;
 		case four:
+			tmpA = arrayFour[arrayCount][0];
+			tmpB = ~arrayFour[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 8){
+				arrayCount = 0;
+			}
 			break;
 		case three:
+			tmpA = arrayThree[arrayCount][0];
+			tmpB = ~arrayThree[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 10){
+				arrayCount = 0;
+			}
 			break;
 		case two:
 			break;
@@ -241,8 +276,6 @@ int main()
 	TimerSet(1);
 	TimerOn();
 	dispState = five;
-	tmpA=0x20;
-	tmpB = 0xFE;
 
 	while(1) {
 		// User code (i.e. synchSM calls)
