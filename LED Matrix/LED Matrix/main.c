@@ -73,7 +73,14 @@ unsigned char arrayCount = 0x00;
 
 // Display two LED's on
 unsigned int countInc = 0;
-unsigned int timeCount = 1000;
+unsigned int timeCount = 1000; // Time count between states on LED Matrix
+
+/*************************************************************
+State arrays to hold values for LED matrix to show 5,4,3,2,1
+
+
+
+*************************************************************/
 
 unsigned char arrayFive[17][2] = {
 	{0x20,0x01},
@@ -118,8 +125,55 @@ unsigned char arrayThree[10][2] = {
 	{0x10,0x80},
 	{0x20,0xFF}
 };
+
+unsigned char arrayTwo[17][2] = {
+	{0x04,0x01},
+	{0x08,0x01},
+	{0x10,0x01},
+	{0x20,0x01},
+	{0x20,0x02},
+	{0x20,0x04},
+	{0x20,0x08},
+	{0x10,0x08},
+	{0x08,0x08},
+	{0x04,0x08},
+	{0x04,0x10},
+	{0x04,0x20},
+	{0x04,0x40},
+	{0x04,0x80},
+	{0x08,0x80},
+	{0x10,0x80},
+	{0x20,0x80}
+};
+
+unsigned char arrayOne[1][2] = {
+	{0x20,0xFF}
+};
+
+unsigned char arrayZero[5][2] = {
+	{0x24,0xFF},
+	{0x08,0x01},
+	{0x10,0x01},
+	{0x08,0x80},
+	{0x10,0x80}
+};
+
+
+
+
+
+/*************************************************************
+disp_countDown_Tick()
+
+Display Countdown function to countdown visually on LED matrix
+from 5 to 0
+
+
+
+*************************************************************/
+
 void disp_countDown_Tick(){
-	switch(dispState){
+	switch(dispState){ // State transitions
 		case five:
 			if(countInc == timeCount){
 				dispState = four;
@@ -145,7 +199,7 @@ void disp_countDown_Tick(){
 			break;
 		case three:
 			if(countInc == timeCount){
-				dispState = five;
+				dispState = two;
 				arrayCount = 0;
 				countInc = 0;
 			}
@@ -158,6 +212,7 @@ void disp_countDown_Tick(){
 		case two:
 			if(countInc == timeCount){
 				dispState = one;
+				arrayCount = 0;
 				countInc = 0;
 			}
 			else{
@@ -168,7 +223,8 @@ void disp_countDown_Tick(){
 			break;
 		case one:
 			if(countInc == timeCount){
-				dispState = 0;
+				dispState = zero;
+				arrayCount = 0;
 				countInc = 0;
 			}
 			else{
@@ -177,9 +233,11 @@ void disp_countDown_Tick(){
 			}
 			break;
 		case zero:
+			dispState = zero;
+			countInc++;
 			break;
 	}
-	switch(dispState){
+	switch(dispState){ // State actions
 		case five:
 			tmpA = arrayFive[arrayCount][0];
 			tmpB = ~arrayFive[arrayCount][1];
@@ -205,10 +263,28 @@ void disp_countDown_Tick(){
 			}
 			break;
 		case two:
+			tmpA = arrayTwo[arrayCount][0];
+			tmpB = ~arrayTwo[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 17){
+				arrayCount = 0;
+			}
 			break;
 		case one:
+			tmpA = arrayOne[arrayCount][0];
+			tmpB = ~arrayOne[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 1){
+				arrayCount = 0;
+			}
 			break;
 		case zero:
+			tmpA = arrayZero[arrayCount][0];
+			tmpB = ~arrayZero[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 5){
+				arrayCount = 0;
+			}
 			break;
 
 	}
@@ -272,6 +348,7 @@ int main()
 {
 	DDRA = 0xFF; PORTA = 0x00; // Initialize DDRA to outputs
 	DDRB = 0xFF; PORTB = 0x00; // Initialize DDRB to outputs
+	DDRD = 0x00; PORTD = 0xFF; // Initialize DDRD to inputs
 
 	TimerSet(1);
 	TimerOn();
