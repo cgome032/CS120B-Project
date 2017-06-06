@@ -14,6 +14,14 @@
 #include "keypad.h"
 #include "nokia5110.c"
 
+/*********************************************************************************
+Global Variables
+
+
+*********************************************************************************/
+unsigned char tmpD = 0x00; // Temporary variable to hold D
+
+
 
 
 /**************************************************
@@ -25,7 +33,7 @@ keypad
 
 enum SM_Lock_States{lock_Start,lock_Locked,lock_lockRelease,lock_Unlocked,lock_unlockRelease,lock_Locking}lock_state;
 char passCode[6] = {'#','1','2','3','4','#'};
-unsigned char lockCounter = 0;
+unsigned int lockCounter = 0;
 void SM_Lock_Tick(){
 	unsigned char x = GetKeypadKey();
 	switch(lock_state){		// Transitions
@@ -105,10 +113,11 @@ void SM_Lock_Tick(){
 				servo_set_PWM(1000);
 				lock_state = lock_Locking;
 				lockCounter = 0;
+				tmpD = 0x03;
 			}
 			break;
 		case lock_Locking:
-			if(lockCounter <= 10){
+			if(lockCounter <= 5){
 				nokia_lcd_clear();
 				nokia_lcd_render();
 				nokia_lcd_set_cursor(2,10);
@@ -116,16 +125,20 @@ void SM_Lock_Tick(){
 				nokia_lcd_set_cursor(2,20);
 				nokia_lcd_write_string("Please exit",1);
 				nokia_lcd_render();
-				_delay_ms(500);
-				nokia_lcd_clear();
-				nokia_lcd_render();
+				//_delay_ms(500);
+				//nokia_lcd_clear();
+				//nokia_lcd_render();
 				lock_state = lock_Locking;
 				lockCounter++;
+				tmpD = 0x03;
 			}
 			else{
+				nokia_lcd_clear();
+				nokia_lcd_render();
 				lock_state = lock_Locked;
 				lockCounter = 0;
 				servo_set_PWM(1500);
+				tmpD = 0x00;
 			}
 			break;			
 	}
@@ -259,12 +272,13 @@ void SM_Alarm_Tick(){
 
 
 
+
 int main(void)
 {
-	DDRA = 0xFF; PORTA = 0x00;
+	DDRA = 0xFF; PORTA = 0x00; // Initialize DDRA to outputs
 	DDRB = 0x0A; PORTB = 0xF5; // Set B3 to output, everything else to input
 	DDRC = 0xF0; PORTC = 0x0F; // Set PC7 to input keypad
-	DDRD |= 0xFF;
+	DDRD |= 0xFF; PORTD = 0x00; // Initialize DDRD to outputs
 
 	servo_PWM_on();
 	speaker_PWM_on();
@@ -288,6 +302,7 @@ int main(void)
 		SM_Lock_Tick();
 		SM_Sensor_Tick();
 		SM_Alarm_Tick();
+		PORTD = tmpD;
 		while(!TimerFlag){}
 		TimerFlag=0;
 	}

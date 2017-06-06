@@ -60,11 +60,12 @@ void TimerSet(unsigned long M) {
 }
 
 
-enum dispStates{zero,one,two,three,four,five}dispState;
+enum dispStates{zero,one,two,three,four,five,wait}dispState;
 
 // Temporary variables to hold values for PORTA and PORTB
 unsigned char tmpA = 0x00;
 unsigned char tmpB = 0x00;
+unsigned char tmpD = 0x00;
 
 // Variables to keep track of vertical and horizontal locations
 unsigned char arrayCount = 0x00;
@@ -173,6 +174,7 @@ from 5 to 0
 *************************************************************/
 
 void disp_countDown_Tick(){
+	tmpD = PIND & 0x03;
 	switch(dispState){ // State transitions
 		case five:
 			if(countInc == timeCount){
@@ -233,9 +235,24 @@ void disp_countDown_Tick(){
 			}
 			break;
 		case zero:
-			dispState = zero;
-			countInc++;
+			if(!tmpD){
+				dispState = wait;
+			}
+			else{
+				dispState = zero;
+				countInc++;
+			}
 			break;
+		case wait:
+			if(tmpD){
+				dispState = five;
+				arrayCount = 0;
+				countInc = 0;
+			}
+			else{
+				dispState = wait;
+				countInc++;
+			}
 	}
 	switch(dispState){ // State actions
 		case five:
@@ -286,63 +303,17 @@ void disp_countDown_Tick(){
 				arrayCount = 0;
 			}
 			break;
+		case wait:
+			tmpA = arrayZero[arrayCount][0];
+			tmpB = ~arrayZero[arrayCount][1];
+			arrayCount++;
+			if(arrayCount == 5){
+				arrayCount = 0;
+			}
+			break;
 
 	}
 }
-
-
-
-enum successStates{chOne,chTwo,chThree,chFour,chFive,chSix}success_state;
-void disp_sucess_Tick(){
-	switch(success_state){
-		case chOne:
-			success_state = chTwo;
-			break;
-		case chTwo:
-			success_state = chThree;
-			break;
-		case chThree:
-			success_state = chFour;
-			break;
-		case chFour:
-			success_state = chFive;
-			break;
-		case chFive:
-			success_state = chSix;
-			break;
-		case chSix:
-			success_state = chOne;
-			break;
-	}
-
-	switch(success_state){
-		case chOne:
-			PORTA = 0xE0;
-			PORTB = 0x40;
-			break;
-		case chTwo:
-			PORTA = 0x00;
-			PORTB = 0x00;
-			break;
-		case chThree:
-			PORTA = 0x00;
-			PORTB = 0x00;
-			break;
-		case chFour:
-			PORTA = 0x00;
-			PORTB = 0x00;
-			break;
-		case chFive:
-			PORTA = 0x00;
-			PORTB = 0x00;
-			break;
-		case chSix:
-			PORTA = 0x00;
-			PORTB = 0x00;
-			break;
-	}
-}
-
 
 int main()
 {
@@ -352,10 +323,12 @@ int main()
 
 	TimerSet(1);
 	TimerOn();
-	dispState = five;
+	dispState = wait;
 
 	while(1) {
-		// User code (i.e. synchSM calls)
+		
+
+			
 		disp_countDown_Tick();
 		PORTA = tmpA;
 		PORTB = tmpB;
