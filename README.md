@@ -9,4 +9,6 @@ Components Used
 5. Speaker
 6. Nokia 5110 LCD Screen
 
+![alt text][logo]
 
+[logo]: /images/Project_Picture.JPG "Project Layout"
