@@ -11,4 +11,4 @@ Components Used
 
 ![alt text][logo]
 
-[logo]: /images/Project_Picture.JPG "Project Layout"
+[logo]: images/IMG_0232.JPG "Project Layout"
